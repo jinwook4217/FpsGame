@@ -27,6 +27,12 @@ public class PlayerFire : MonoBehaviour
 
     void Update()
     {
+        // 게임 상태가 ‘게임 중’ 상태일 때만 조작할 수 있게 한다.
+        if (GameManager.gm.gState != GameManager.GameState.Run)
+        {
+            return;
+        }
+
         if (Input.GetMouseButtonDown(1))
         {
             GameObject bomb = Instantiate(bombFactory);
