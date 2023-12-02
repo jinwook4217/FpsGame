@@ -30,10 +30,16 @@ public class PlayerMove : MonoBehaviour
 
     public GameObject hitEffect;
 
+    // 애니메이터 변수
+    Animator anim;
+
 
     private void Start()
     {
         cc = GetComponent<CharacterController>();
+
+        // 애니메이터 받아오기
+        anim = GetComponentInChildren<Animator>();
     }
 
     void Update()
@@ -49,6 +55,9 @@ public class PlayerMove : MonoBehaviour
 
         Vector3 dir = new Vector3(h, 0, v);
         dir = dir.normalized;
+
+        // 이동 블렌딩 트리를 호출하고 벡터의 크기 값을 넘겨준다
+        anim.SetFloat("MoveMotion", dir.magnitude);
 
         dir = Camera.main.transform.TransformDirection(dir);
 

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.AI;
 
 public class EnemyFSM : MonoBehaviour
 {
@@ -46,6 +47,7 @@ public class EnemyFSM : MonoBehaviour
 
     // 초기 위치 저장용 변수
     Vector3 originPos;
+    Quaternion originRot;
 
     // 이동 가능 범위
     public float moveDistance = 20f;
@@ -60,6 +62,9 @@ public class EnemyFSM : MonoBehaviour
 
     // 애니메이터 변수
     Animator anim;
+
+    // 네비게이션 에이전트 변수
+    NavMeshAgent smith;
 
 
     void Start()
@@ -76,8 +81,14 @@ public class EnemyFSM : MonoBehaviour
         // 자신의 초기 위치 저장하기
         originPos = transform.position;
 
+        // 자신의 초기 회전값
+        originRot = transform.rotation;
+
         // 자식 오브젝트로부터 애니메이터 변수 받아오기
         anim = transform.GetComponentInChildren<Animator>();
+
+        // 내비게이션 에이전트 컴포넌트 받아오기
+        smith = GetComponent<NavMeshAgent>();
     }
 
     void Update()
@@ -133,10 +144,23 @@ public class EnemyFSM : MonoBehaviour
         else if (Vector3.Distance(transform.position, player.position) > attackDistance)
         {
             // 이동 방향 설정
-            Vector3 dir = (player.position - transform.position).normalized;
+            // Vector3 dir = (player.position - transform.position).normalized;
 
             // 캐릭터 컨트롤러를 이용해 이동하기
-            cc.Move(dir * moveSpeed * Time.deltaTime);
+            // cc.Move(dir * moveSpeed * Time.deltaTime);
+
+            // 플레이어 방향을 바라보도록 설정
+            // transform.forward = dir;
+
+            // 내비게이션 에이전트의 이동을 멈추고 경로를 초기화
+            smith.isStopped = true;
+            smith.ResetPath();
+
+            // 내비게이션으로 접근하는 최소 거리를 공격 가능 거리로 설정
+            smith.stoppingDistance = attackDistance;
+
+            // 내비게이션의 목적지를 플레이어의 위치로 설정
+            smith.destination = player.position;
         }
         else
         {
@@ -146,6 +170,9 @@ public class EnemyFSM : MonoBehaviour
 
             // 누적 시간을 공격 딜레이 시간만큼 미리 진행시켜 놓는다
             currentTime = attackDelay;
+
+            // 공격 대기 애니메이션으로 전환
+            anim.SetTrigger("MoveToAttackDelay");
         }
     }
 
@@ -158,9 +185,12 @@ public class EnemyFSM : MonoBehaviour
             currentTime += Time.deltaTime;
             if (currentTime > attackDelay)
             {
-                player.GetComponent<PlayerMove>().DamageAction(attackPower);
+                //player.GetComponent<PlayerMove>().DamageAction(attackPower);
                 print("Attack");
                 currentTime = 0f;
+
+                // 공격 애니메이션 발동
+                anim.SetTrigger("StartAttack");
             }
         }
         else
@@ -169,7 +199,16 @@ public class EnemyFSM : MonoBehaviour
             m_State = EnemyState.Move;
             print("상태 전: Attack -> Move");
             currentTime = 0f;
+
+            // 공격 -> 추격 애니매이션 전환
+            anim.SetTrigger("AttackToMove");
         }
+    }
+
+    // 플레이어의 스크립트의 데미지 처리 함수 실행
+    public void AttackAction()
+    {
+        player.GetComponent<PlayerMove>().DamageAction(attackPower);
     }
 
     private void Return()
@@ -177,18 +216,35 @@ public class EnemyFSM : MonoBehaviour
         // 만약 초기 위치에서 거리가 0.1f 이상이라면 초기 위치 쪽으로 이동한다
         if (Vector3.Distance(transform.position, originPos) > 0.1f)
         {
-            Vector3 dir = (originPos - transform.position).normalized;
-            cc.Move(dir * moveSpeed * Time.deltaTime);
+            // Vector3 dir = (originPos - transform.position).normalized;
+            //cc.Move(dir * moveSpeed * Time.deltaTime);
+
+            // 복귀 지점으로 방향을 전환
+            //transform.forward = dir;
+
+            // 내비게이션의 목적지를 초기 지정한 위치로 설정
+            smith.destination = originPos;
+
+            // 내비게이션으로 접근하는 최소 거리를 0으로 설정
+            smith.stoppingDistance = 0;
         }
         else
         {
+            // 내비게이션 에이전트의 이동을 멈추고 경로를 초기화
+            smith.isStopped = true;
+            smith.ResetPath();
+
             // 자신의 위치를 초기 위치로 조정하고 현재 상태를 대기로 전환
             transform.position = originPos;
+            transform.rotation = originRot;
 
             // hp를 다시 회복
             hp = maxHp;
             m_State = EnemyState.Idle;
             print("상태 전환: Return -> Idle");
+
+            // 대기 애니메이션으로 전환하는 트랜지션을 호출
+            anim.SetTrigger("MoveToIdle");
         }
     }
 
@@ -202,18 +258,28 @@ public class EnemyFSM : MonoBehaviour
         // 플레이어의 공격력만큼 에너미의 체력을 감소
         hp -= hitPower;
 
+        // 내비게이션 에이전트의 이동을 멈추고 경로를 초기화
+        smith.isStopped = true;
+        smith.ResetPath();
+
         // 에너미의 체력이 0보다 크면 피격 상태로 전환
         if (hp > 0)
         {
             m_State = EnemyState.Damaged;
             print("상태 전환: Any state -> Damaged");
             Damaged();
+
+            // 피격 애니메이션 실행
+            anim.SetTrigger("Damaged");
         }
         else
         {
             m_State = EnemyState.Die;
             print("상태 전환: Any state -> Die");
             Die();
+
+            // 죽음 애니메이션 실행
+            anim.SetTrigger("Die");
         }
     }
 
@@ -227,7 +293,7 @@ public class EnemyFSM : MonoBehaviour
     IEnumerator DamageProcess()
     {
         // 피격 모션 시간만큼 기다린다
-        yield return new WaitForSeconds(0.5f);
+        yield return new WaitForSeconds(1f);
 
         // 현재 상태를 이동 상태로 전환
         m_State = EnemyState.Move;

@@ -19,10 +19,16 @@ public class PlayerFire : MonoBehaviour
     // 발사 무기 공격력
     public int weaponPower = 5;
 
+    // 애니메이터 변수
+    Animator anim;
+
     void Start()
     {
         // 피격 이펙트 오브젝트에서 파티클 시스템 컴포넌트 가져오기
         ps = bulletEffect.GetComponent<ParticleSystem>();
+
+        // 애니메이터 가져오기
+        anim = GetComponentInChildren<Animator>();
     }
 
     void Update()
@@ -45,6 +51,12 @@ public class PlayerFire : MonoBehaviour
         // 마우스 왼쪽 버튼을 입력받는다
         if (Input.GetMouseButtonDown(0))
         {
+            // 만일 이동 블렌드 트리 파라미터 값이 0이라, 공격 애니메이션을 실시한다
+            if (anim.GetFloat("MoveMotion") == 0)
+            {
+                anim.SetTrigger("Attack");
+            }
+
             // 레이를 생성한 후 발사될 위치와 진행 방향을 설정한다
             Ray ray = new Ray(Camera.main.transform.position, Camera.main.transform.forward);
 
