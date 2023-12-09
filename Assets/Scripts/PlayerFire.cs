@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class PlayerFire : MonoBehaviour
 {
@@ -22,6 +23,26 @@ public class PlayerFire : MonoBehaviour
     // 애니메이터 변수
     Animator anim;
 
+    // 무기 모드 변수
+    enum WeaponMode
+    {
+        Normal,
+        Sniper
+    }
+
+    // 현재 무기 모드
+    WeaponMode wMode;
+
+    // 카메라 축소 확대 확인용 변수
+    bool ZoomMode = false;
+
+    // 무기 모드 텍스트
+    public Text wModeText;
+
+    // 총 발사 효과 오브젝트 배열
+    public GameObject[] eff_Flash;
+
+
     void Start()
     {
         // 피격 이펙트 오브젝트에서 파티클 시스템 컴포넌트 가져오기
@@ -29,6 +50,9 @@ public class PlayerFire : MonoBehaviour
 
         // 애니메이터 가져오기
         anim = GetComponentInChildren<Animator>();
+
+        // 무기 모드 초기화
+        wMode = WeaponMode.Normal;
     }
 
     void Update()
@@ -41,11 +65,33 @@ public class PlayerFire : MonoBehaviour
 
         if (Input.GetMouseButtonDown(1))
         {
-            GameObject bomb = Instantiate(bombFactory);
-            bomb.transform.position = firePosition.transform.position;
+            switch (wMode)
+            {
+                case WeaponMode.Normal:
+                    // 수류탄 발사
+                    GameObject bomb = Instantiate(bombFactory);
+                    bomb.transform.position = firePosition.transform.position;
 
-            Rigidbody rb = bomb.GetComponent<Rigidbody>();
-            rb.AddForce(Camera.main.transform.forward * throwPower, ForceMode.Impulse);
+                    Rigidbody rb = bomb.GetComponent<Rigidbody>();
+                    rb.AddForce(Camera.main.transform.forward * throwPower, ForceMode.Impulse);
+                    break;
+                case WeaponMode.Sniper:
+                    // 화면 확대
+                    // 만약 줌 모드 상태가 아니라, 카메라를 확대하고 줌 모드 상태로 변경
+                    if (!ZoomMode)
+                    {
+                        Camera.main.fieldOfView = 15f;
+                        ZoomMode = true;
+                    }
+                    // 그게 아니라면 카메라를 원래 상태로 되돌리, 줌 모드 상태를 해제
+                    else
+                    {
+                        Camera.main.fieldOfView = 60f;
+                        ZoomMode = false;
+                    }
+                    
+                    break;
+            }
         }
 
         // 마우스 왼쪽 버튼을 입력받는다
@@ -84,6 +130,41 @@ public class PlayerFire : MonoBehaviour
                     ps.Play();
                 }
             }
+
+            // 총 이펙트를 실시
+            StartCoroutine(ShootEffectOn(0.05f));
         }
+
+        // 만약 키보드의 숫자 1번을 입력 받으, 무기 모드를 일반 모드로 변경
+        if (Input.GetKeyDown(KeyCode.Alpha1))
+        {
+            wMode = WeaponMode.Normal;
+
+            Camera.main.fieldOfView = 60f;
+
+            // 일반 모드 텍스트
+            wModeText.text = "Normal Mode";
+        }
+        // 만약 키보드의 숫자 2번을 입력 받으, 무기 모드를 스나이퍼 모드로 변경
+        else if (Input.GetKeyDown(KeyCode.Alpha2))
+        {
+            wMode = WeaponMode.Sniper;
+
+            // 스나이퍼 모드 텍스트
+            wModeText.text = "Sniper Mode";
+        }
+    }
+
+    // 총구 이펙트 코루틴 함수
+    IEnumerator ShootEffectOn(float duration)
+    {
+        // 랜덤하게 숫자를 뽑는다
+        int num = Random.Range(0, eff_Flash.Length - 1);
+        // 이펙트 오브젝트 배열에서 뽑힌 숫자에 해당하는 이펙트 오브젝트를 활성화
+        eff_Flash[num].SetActive(true);
+        // 지정한 시간만큼 대기
+        yield return new WaitForSeconds(duration);
+        // 이펙트 오브젝트를 다시 비활성화
+        eff_Flash[num].SetActive(false);
     }
 }
