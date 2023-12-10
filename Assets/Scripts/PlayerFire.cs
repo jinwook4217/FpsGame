@@ -42,6 +42,21 @@ public class PlayerFire : MonoBehaviour
     // 총 발사 효과 오브젝트 배열
     public GameObject[] eff_Flash;
 
+    // 무기 아이콘 스프라이트 변수
+    public GameObject weapon01;
+    public GameObject weapon02;
+
+    // 크로스헤어 스프라이트 변수
+    public GameObject crosshair01;
+    public GameObject crosshair02;
+
+    // 마우스 오른쪽 버튼 클릭 아이콘 스프라이트 변수
+    public GameObject weapon01_R;
+    public GameObject weapon02_R;
+
+    // 마우스 오른쪽 버튼 줌 모드 스나이퍼 스프라이트 변수
+    public GameObject crosshair02_zoom;
+
 
     void Start()
     {
@@ -82,12 +97,20 @@ public class PlayerFire : MonoBehaviour
                     {
                         Camera.main.fieldOfView = 15f;
                         ZoomMode = true;
+
+                        // 줌 모드 크로스헤어 변경
+                        crosshair02.SetActive(false);
+                        crosshair02_zoom.SetActive(true);
                     }
                     // 그게 아니라면 카메라를 원래 상태로 되돌리, 줌 모드 상태를 해제
                     else
                     {
                         Camera.main.fieldOfView = 60f;
                         ZoomMode = false;
+
+                        // 줌 모드 크로스헤어 변경
+                        crosshair02.SetActive(true);
+                        crosshair02_zoom.SetActive(false);
                     }
                     
                     break;
@@ -144,6 +167,19 @@ public class PlayerFire : MonoBehaviour
 
             // 일반 모드 텍스트
             wModeText.text = "Normal Mode";
+
+            // 일반 모드 아이콘 및 크로스헤어 설정
+            weapon01.SetActive(true);
+            crosshair01.SetActive(true);
+            weapon02.SetActive(false);
+            crosshair02.SetActive(false);
+
+            // 오른쪽 마우스 무기 아이콘 변경
+            weapon01_R.SetActive(true);
+            weapon02_R.SetActive(false);
+
+            // 스나이퍼 줌 모드 크로스헤어 설정
+            crosshair02_zoom.SetActive(false);
         }
         // 만약 키보드의 숫자 2번을 입력 받으, 무기 모드를 스나이퍼 모드로 변경
         else if (Input.GetKeyDown(KeyCode.Alpha2))
@@ -152,6 +188,16 @@ public class PlayerFire : MonoBehaviour
 
             // 스나이퍼 모드 텍스트
             wModeText.text = "Sniper Mode";
+
+            // 스나이퍼 모드 아이콘 및 크로스헤어 설정
+            weapon01.SetActive(false);
+            crosshair01.SetActive(false);
+            weapon02.SetActive(true);
+            crosshair02.SetActive(true);
+
+            // 오른쪽 마우스 무기 아이콘 변경
+            weapon01_R.SetActive(false);
+            weapon02_R.SetActive(true);
         }
     }
 
